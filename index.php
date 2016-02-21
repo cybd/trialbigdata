@@ -1,6 +1,45 @@
 <?php
 
-$rowTypeOneColumns = [
+require_once 'config.php';
+
+if (!extension_loaded('mysqli')) {
+    die('Extention mysqli is not loaded. Cannot proceed.');
+}
+
+$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
+if ($mysqli->connect_errno) {
+    die (
+        "Failed to connect to MySQL: (" . $mysqli->connect_errno . ") " . $mysqli->connect_error
+    );
+}
+
+$mysqli->query('SET NAMES utf8');
+
+$insertQuery = "
+    INSERT INTO
+        ".$dbtable." (
+        `name`,
+        `phone`,
+        `email`,
+        `address`,
+        `company`,
+        `position`,
+        `hobby`,
+        `card`,
+        `birthdate`,
+        `site`,
+        `sex`
+        )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+";
+
+if (!($stmt = $mysqli->prepare($insertQuery))) {
+    echo 'Prepare failed: ' . $mysqli->errno . ' ' . $mysqli->error;
+}
+
+// $mysqli->close();
+
+/*$rowTypeOneColumns = [
     'id','login','phone','age','hobby','category','position','address','date','site','company','card','email','name','color'
 ];
 $rowTypeTwoColumns = [
@@ -8,16 +47,10 @@ $rowTypeTwoColumns = [
 ];
 $rowTypeThreeColumns = [
     'name','email','birthdate','company','icard','orgnum','phone','phone2','address','city','zip','region','hobby','dep','sex'
-];
-
-// $needToCollect = [name, phone, email, address, company, title(wtf), hobby, card(icard), birthdate, site, sex];
-
-// for each type of row we need to know correct index number
-// i.e.
-// name -- $linePart[13], $linePart[14], $linePart[0] for each type of row accordingly
+];*/
 
 /*
-  [rowtype1, rowtype2, rowtype3,]
+  columnName => [rowtype1, rowtype2, rowtype3,]
 */
 $rowMapping = [
     'name'        => [13, 14, 0],
@@ -25,9 +58,9 @@ $rowMapping = [
     'email'       => [12, 13, 1],
     'address'     => [7, 8, 8],
     'company'     => [10, 11, 3],
-    'title(wtf)'  => [],
+    'position'    => [6, 7, null],
     'hobby'       => [4, 6, 12],
-    'card(icard)' => [11, 12, 4],
+    'card'        => [11, 12, 4],
     'birthdate'   => [null, null, 2],
     'site'        => [9, 10, null],
     'sex'         => [null, null, 14],
@@ -36,18 +69,20 @@ $rowMapping = [
 // $inputFilename = 'test_data.csv';
 $inputFilename = 'my_test_data.csv';
 
-$fileHandle = fopen($inputFilename => [], 'r');
+$fileHandle = fopen($inputFilename, 'r');
 
 if (!$fileHandle) {
     die('Have problem with opening file ' . $inputFilename);
 }
 
 $count = 0;
+$rowType = null;
+/* TODO: skip insert into db header rows for each rowtype */
 while (($lineParts = fgetcsv($fileHandle, 4096, ',')) !== false) {
 
-    var_dump($lineParts);
+    // var_dump($lineParts);
 
-    $rowType = 0;
+    $rowType = isset($rowType) ? $rowType : -1;
     $keyPart = $lineParts[4];
 
     switch ($keyPart) {
@@ -67,10 +102,76 @@ while (($lineParts = fgetcsv($fileHandle, 4096, ',')) !== false) {
             break;
     }
 
-    if ($count > 7) {
+    // var_dump($rowType);
+
+    foreach ($rowMapping as $columnName => $value) {
+
+        if (!is_null($indexNumber = $value[$rowType])) {
+            $indexNumber;
+            $$columnName = $lineParts[$indexNumber];
+        } else {
+            $$columnName = null;
+        }
+    }
+
+/*    $columnNamesArr = [
+        'name',
+        'phone',
+        'email',
+        'address',
+        'company',
+        'position',
+        'hobby',
+        'card',
+        'birthdate',
+        'site',
+        'sex',
+    ];
+
+    print_r($columnNamesArr);
+
+    var_dump(
+        $name,
+        $phone,
+        $email,
+        $address,
+        $company,
+        $position,
+        $hobby,
+        $card,
+        $birthdate,
+        $site,
+        $sex
+    );*/
+
+    if ($count > 10) {
         break;
     }
     $count++;
+
+    // use prepared statements for multiple inserts
+    if (!($stmt->bind_param(
+        'sssssssssss',
+        $name,
+        $phone,
+        $email,
+        $address,
+        $company,
+        $position,
+        $hobby,
+        $card,
+        $birthdate,
+        $site,
+        $sex
+    ))) {
+        echo 'Bind failed: ' . $mysqli->errno . ' ' . $mysqli->error;
+    }
+
+    if (!$stmt->execute()) {
+        echo 'Execute failed: ' . $mysqli->errno . ' ' . $mysqli->error;
+    }
 }
 
+$stmt->close();
+$mysqli->close();
 fclose($fileHandle);

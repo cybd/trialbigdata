@@ -28,7 +28,7 @@ $insertQuery = "
         `card`,
         `birthdate`,
         `site`,
-        `sex`
+        `gender`
         )
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ";
@@ -51,7 +51,7 @@ $rowMapping = [
     'card'        => [11, 12, 4],
     'birthdate'   => [null, null, 2],
     'site'        => [9, 10, null],
-    'sex'         => [null, null, 14],
+    'gender'         => [null, null, 14],
 ];
 
 $inputFilename = 'test_data.csv';
@@ -75,7 +75,7 @@ if (!($stmt->bind_param(
     $card,
     $birthdate,
     $site,
-    $sex
+    $gender
 ))) {
     echo 'Bind failed: ' . $mysqli->errno . ' ' . $mysqli->error;
 }
@@ -83,7 +83,10 @@ if (!($stmt->bind_param(
 $count = 0;
 while (($lineParts = fgetcsv($fileHandle, 4096, ',')) !== false) {
 
-    // var_dump($lineParts);
+/*    if ($count > 5) {
+        break;
+    }
+    $count++;*/
 
     $rowType = isset($rowType) ? $rowType : null;
     $keyPart = $lineParts[4];
@@ -116,11 +119,6 @@ while (($lineParts = fgetcsv($fileHandle, 4096, ',')) !== false) {
             $$columnName = null;
         }
     }
-
-/*    if ($count > 10) {
-        break;
-    }*/
-    $count++;
 
     if (!$stmt->execute()) {
         echo 'Execute failed: ' . $mysqli->errno . ' ' . $mysqli->error;

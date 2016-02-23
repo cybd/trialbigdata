@@ -108,15 +108,13 @@ while (($lineParts = fgetcsv($fileHandle, 4096, ',')) !== false) {
             continue 2;
     }
 
-    // var_dump($rowType);
-
     foreach ($rowMapping as $columnName => $value) {
 
         if (!is_null($indexNumber = $value[$rowType])) {
             $indexNumber;
             $$columnName = $lineParts[$indexNumber];
         } else {
-            $$columnName = null;
+            $$columnName = '';
         }
     }
 
